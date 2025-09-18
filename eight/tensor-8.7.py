@@ -10,7 +10,9 @@ def readTxtFile(filePath):
         data = file.read()
     return data
 
-
+def predict_class(model, x):
+    prediction = model.predict(x, verbose=0)
+    return np.argmax(prediction, axis=-1)
 
 data = readTxtFile("./XW_ab.txt")
 corpus = data.split()
@@ -40,8 +42,22 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 history = model.fit(xs, ys, epochs=50, verbose=1, batch_size=512)
 
 
+seed_text = "You know nothing, John Snow."
+next_words = 75
 
 
+for _ in range(next_words):
+    token_list = tokenizer.texts_to_sequences([seed_text])[0]
+    token_list = tf.keras.preprocessing.sequence.pad_sequences([token_list], maxlen=block_size - 1, padding='pre')
+
+    prediction = predict_class(model, token_list)
+    output_word = ""
+    for word, index in tokenizer.word_index.items():
+        if index == prediction:
+            output_word = word
+            break
+    seed_text = seed_text + " " + output_word
+print(seed_text)
 
 
 #
