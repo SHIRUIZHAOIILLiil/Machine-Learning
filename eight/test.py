@@ -33,7 +33,7 @@ def predict_class(model, x):
 data = readTxtFile("./XW_ab.txt")
 
 # 注意：你是“字符级”，所以不要 split 成词
-tokenizer = Tokenizer(char_level=True, oov_token='oov', filters='', lower=False)
+tokenizer = Tokenizer(char_level=True, filters='', lower=False)
 tokenizer.fit_on_texts([data])
 ids = tokenizer.texts_to_sequences([data])[0]     # 整数序列
 totalChars = len(tokenizer.word_index) + 1        # 含 0（padding）
@@ -58,19 +58,19 @@ ds = tf.data.Dataset.from_tensor_slices((xs, ys)).shuffle(10000).batch(BATCH).pr
 model = tf.keras.Sequential([
     tf.keras.layers.Embedding(input_dim=totalChars, output_dim=128, name="emb"),      # 适当加大维度更有效
     tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256, return_sequences=True)),
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256), name="bi_lstm"),# 256/512 视显存调
+    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(256, dropout=0.1), name="bi_lstm"),# 256/512 视显存调
     tf.keras.layers.Dense(totalChars, activation='softmax', dtype='float32')          # 混合精度下最后一层回到 float32
 ])
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 print("TF:", tf.__version__, "| GPUs:", tf.config.list_physical_devices("GPU"))
-history = model.fit(ds, epochs=50, verbose=1)
+history = model.fit(ds, epochs=25, verbose=1, batch_size=BATCH)
 
 # —— 文本生成（字符级）
 # 小贴士：字符级拼接不需要在字符之间额外加空格（除非预测到的就是空格）
 seed_text = "You know nothing, John Snow."
-next_steps = 75
+next_steps = 100
 
 # 反向索引：id → 字符
 index_word = {idx: ch for ch, idx in tokenizer.word_index.items()}
